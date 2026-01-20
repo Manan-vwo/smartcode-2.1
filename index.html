@@ -49,13 +49,25 @@
     </style>
 	   <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
 	<meta http-equiv="Accept-CH" content="Sec-CH-UA, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, Sec-CH-UA-Full-Version, Sec-CH-UA-Model, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Platform-Version, Sec-CH-UA-Full-Version-List">
-    <!-- Start VWO Async SmartCode -->
+    <!-- Start VWO SmartCode -->
     <script type="text/javascript">
      const params = new URLSearchParams(window.location.search);
      const accId = parseInt(params.get("id"));
      const accountId = accId || 21000071;
+     const useOsc = params.get("sc") === "osc";
      console.log("Account-Id ->", accountId);
-     /* eslint-disable no-undef */
+     console.log("Using OSC SmartCode ->", useOsc);
+     
+     if (useOsc) {
+       // Use OSC SmartCode format
+       const script = document.createElement('script');
+       script.referrerPolicy = 'no-referrer-when-downgrade';
+       script.src = 'https://dev.visualwebsiteoptimizer.com/lib/' + accountId + '.js';
+       script.id = 'vwoCode';
+       document.getElementsByTagName('head')[0].appendChild(script);
+     } else {
+       // Use Async SmartCode format
+       /* eslint-disable no-undef */
 window._vwo_code || (function() {
 var account_id=accountId,
 version=2.1,
@@ -67,9 +79,10 @@ f=false,w=window,d=document,v=d.querySelector('#vwoCode'),cK='_vwo_'+account_id+
   window._vwo_pc_custom = {
         a: 100,
         t: 100
-    };	    
+    };
+     }
 	</script>
-<!-- End VWO Async SmartCode -->
+<!-- End VWO SmartCode -->
    <script>
         document.addEventListener("DOMContentLoaded", function(event) {
             console.log("DOM content loaded");
