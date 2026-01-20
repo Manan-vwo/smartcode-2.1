@@ -58,14 +58,14 @@
      console.log("Account-Id ->", accountId);
      console.log("Using OSC SmartCode ->", useOsc);
      
-     if (useOsc) {
+    //  if (useOsc) {
        // Use OSC SmartCode format
        const script = document.createElement('script');
        script.referrerPolicy = 'no-referrer-when-downgrade';
        script.src = 'https://dev.visualwebsiteoptimizer.com/lib/' + accountId + '.js';
        script.id = 'vwoCode';
        document.getElementsByTagName('head')[0].appendChild(script);
-     } else {
+    //  } else {
        // Use Async SmartCode format
        /* eslint-disable no-undef */
         // window._vwo_code || (function() {
@@ -80,7 +80,7 @@
         //       a: 100,
         //       t: 100
         // };
-    }
+    // }
 	</script>
 <!-- End VWO SmartCode -->
    <script>
