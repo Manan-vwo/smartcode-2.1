@@ -1,6 +1,199 @@
 <html>
   <head>
     <title>My Website</title>
+	<script>
+		(function (exports) {
+		  'use strict';
+		
+		  const ABTASTY_EVENT_NAMES = {
+		      RESET_ACTION_TRACKING: 'abtasty_resetActionTracking',
+		      CONSENT_VALID: 'abtasty_consentValid',
+		      EXECUTED_CAMPAIGN: 'abtasty_executedCampaign',
+		      TAG_CONTENT_EXECUTED: 'abtasty_tagContentExecuted',
+		      TRACKING_INITIALIZED: 'abtasty_trackingInitialized',
+		      GRANT_CONSENT: 'abtasty_grantConsent',
+		      REVOKE_CONSENT: 'abtasty_revokeConsent',
+		      CHECK_BYOID: 'abtasty_checkByoid',
+		      CHECK_TARGETING: 'abtasty_checkTargeting',
+		  };
+		  const w = window;
+		  w._ABTasty = w._ABTasty || {};
+		  w._ABTasty.ABTASTY_EVENT_NAMES = ABTASTY_EVENT_NAMES;
+		
+		  function isPersonalizeCampaign(campaignId) {
+		      var _a, _b;
+		      const cd = (_a = window._vwo_exp) === null || _a === void 0 ? void 0 : _a[campaignId];
+		      return ((_b = cd === null || cd === void 0 ? void 0 : cd.iType) === null || _b === void 0 ? void 0 : _b.type) === 'TARGETING';
+		  }
+		  function getProcessedVariationId(variationId, isPersonalize) {
+		      if (!isPersonalize || typeof variationId !== 'string') {
+		          return variationId;
+		      }
+		      const parts = variationId.split(',');
+		      return parts.length > 1 ? parts[1] : variationId;
+		  }
+		  function getABTastyCampaignType(campaignId) {
+		      var _a;
+		      try {
+		          const cd = (_a = window._vwo_exp) === null || _a === void 0 ? void 0 : _a[campaignId];
+		          if (!cd)
+		              return undefined;
+		          const baseType = cd.type;
+		          const isP = isPersonalizeCampaign(campaignId);
+		          const isMp = (() => {
+		              var _a, _b, _c;
+		              try {
+		                  const varArr = (_c = (_b = (_a = cd.sections) === null || _a === void 0 ? void 0 : _a[1]) === null || _b === void 0 ? void 0 : _b.variations) === null || _c === void 0 ? void 0 : _c["2"];
+		                  return Array.isArray(varArr) && varArr.some(e => (e === null || e === void 0 ? void 0 : e.pgGrpIds) || (e === null || e === void 0 ? void 0 : e.getPath));
+		              }
+		              catch (_) {
+		                  return false;
+		              }
+		          })();
+		          if (baseType === 'VISUAL') {
+		              return 'mvt';
+		          }
+		          else if (isP) {
+		              return cd.mE ? 'mep' : (isMp ? 'mpp' : 'mep');
+		          }
+		          else if (baseType === 'VISUAL_AB' || baseType === 'SPLIT_URL') {
+		              return isMp ? 'mpt' : 'ab';
+		          }
+		          return undefined;
+		      }
+		      catch (_) {
+		          return undefined;
+		      }
+		  }
+		
+		  function safeDispatchEvent(target, eventName, detail) {
+		      try {
+		          if (typeof target !== 'undefined' && target.dispatchEvent) {
+		              target.dispatchEvent(new CustomEvent(eventName, { detail: detail !== null && detail !== void 0 ? detail : {} }));
+		          }
+		      }
+		      catch (_) {
+		      }
+		  }
+		  function setupAbtastyVWOEventListeners() {
+		      try {
+		          if (typeof window === 'undefined' || !window.VWO)
+		              return;
+		          window.VWO.push(['onVWOLoaded', function () {
+		                  safeDispatchEvent(window, ABTASTY_EVENT_NAMES.TAG_CONTENT_EXECUTED);
+		              }]);
+		          window.VWO.push(['onEventReceive', 'tI', function () {
+		                  safeDispatchEvent(window, ABTASTY_EVENT_NAMES.TRACKING_INITIALIZED);
+		              }]);
+		          window.VWO.push(['onVariationApplied', function (data) {
+		                  const campaignId = data[1];
+		                  const rawVariationId = data[2];
+		                  const campaignType = getABTastyCampaignType(campaignId);
+		                  const isP = isPersonalizeCampaign(campaignId);
+		                  const variationId = getProcessedVariationId(rawVariationId, isP);
+		                  safeDispatchEvent(window, ABTASTY_EVENT_NAMES.EXECUTED_CAMPAIGN, {
+		                      campaignId,
+		                      variationId,
+		                      status: "accepted",
+		                      type: campaignType
+		                  });
+		              }]);
+		          window.VWO.push(['onEventReceive', 'cV', function (data) {
+		                  safeDispatchEvent(window, ABTASTY_EVENT_NAMES.CONSENT_VALID, { mode: "", consentFor: [] });
+		              }]);
+		          window.VWO.push(['onEventReceive', 'rAT', function () {
+		                  safeDispatchEvent(document, ABTASTY_EVENT_NAMES.RESET_ACTION_TRACKING);
+		              }]);
+		      }
+		      catch (_) {
+		      }
+		  }
+		  setupAbtastyVWOEventListeners();
+		
+		  const sendCustomErrorCall = (_errorObj) => {
+		      try {
+		          window.VWO._.customError(_errorObj);
+		      }
+		      catch (e) { }
+		  };
+		
+		  function safelyGetValue(getter, errorReportingConfig = { sendErrorLog: false }, defaultValue) {
+		      try {
+		          return getter();
+		      }
+		      catch (e) {
+		          if (errorReportingConfig.sendErrorLog) {
+		              setTimeout(() => {
+		                  try {
+		                      sendCustomErrorCall({
+		                          msg: errorReportingConfig.msg || "safelyGetValue failed!",
+		                          url: errorReportingConfig.url || 'errorHandler.ts',
+		                          source: errorReportingConfig.source || e
+		                      });
+		                  }
+		                  catch (e) { }
+		              }, 100);
+		          }
+		          return defaultValue;
+		      }
+		  }
+		
+		  const CONSENT_STATE = { GRANT: 1, REVOKE: 3 };
+		  function onAbtastyConsentEvent(state) {
+		      var _a;
+		      try {
+		          if (typeof ((_a = window === null || window === void 0 ? void 0 : window.VWO) === null || _a === void 0 ? void 0 : _a.init) === 'function') {
+		              window.VWO.init(state);
+		          }
+		      }
+		      catch (_) {
+		      }
+		  }
+		  function onAbtastyCheckByoid(e) {
+		      try {
+		          if (window.VWO._ && typeof window.VWO._.vIRFn === 'function') {
+		              window.VWO._.vIRFn();
+		          }
+		      }
+		      catch (_) {
+		      }
+		  }
+		  function onAbtastyCheckTargeting(e) {
+		      var _a;
+		      try {
+		          const campaignId = safelyGetValue(() => e.detail.campaignId);
+		          if (typeof window === 'undefined' || !campaignId)
+		              return;
+		          if (typeof ((_a = window.VWO) === null || _a === void 0 ? void 0 : _a.runCampaign) === 'function') {
+		              window.VWO.runCampaign(campaignId);
+		          }
+		      }
+		      catch (_) {
+		      }
+		  }
+		  function setupAbtastyEventListeners() {
+		      try {
+		          if (typeof window === 'undefined' || !window.addEventListener)
+		              return;
+		          window.addEventListener(ABTASTY_EVENT_NAMES.GRANT_CONSENT, () => onAbtastyConsentEvent(CONSENT_STATE.GRANT));
+		          window.addEventListener(ABTASTY_EVENT_NAMES.REVOKE_CONSENT, () => onAbtastyConsentEvent(CONSENT_STATE.REVOKE));
+		          window.addEventListener(ABTASTY_EVENT_NAMES.CHECK_BYOID, onAbtastyCheckByoid);
+		          window.addEventListener(ABTASTY_EVENT_NAMES.CHECK_TARGETING, onAbtastyCheckTargeting);
+		      }
+		      catch (_) {
+		      }
+		  }
+		  setupAbtastyEventListeners();
+		
+		  exports.ABTASTY_EVENT_NAMES = ABTASTY_EVENT_NAMES;
+		  exports.setupAbtastyEventListeners = setupAbtastyEventListeners;
+		  exports.setupAbtastyVWOEventListeners = setupAbtastyVWOEventListeners;
+		
+		  return exports;
+		
+		}({}));
+
+	</script>
     <style>
       #contact_us,
       #about,
