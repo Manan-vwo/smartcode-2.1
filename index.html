@@ -2,6 +2,14 @@
   <head>
     <title>My Website</title>
 	<script>
+		document.addEventListener('abtasty_resetActionTracking',(e)=>{console.log(e, 'abtasty_resetActionTracking')});
+		window.addEventListener('abtasty_consentValid', e => {console.log(e, "abtasty_consentValid")});
+		window.addEventListener('abtasty_executedCampaign', e=>{console.log(e ,"abtasty_executedCampaign")});
+		window.addEventListener('abtasty_tagContentExecuted', (e)=>{e , "abtasty_tagContentExecuted"});
+		window.addEventListener('abtasty_trackingInitialized', (e)=>{e , console.log("abtasty_trackingInitialized")})
+		
+	</script>
+	<script>
 		(function (exports) {
 		  'use strict';
 		
