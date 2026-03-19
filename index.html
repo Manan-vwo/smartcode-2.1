@@ -166,7 +166,7 @@ VWO.push(['onVariationApplied', function (data) {
     <h1 id="registration-heading" style="text-align: center">Registration Form</h1>
 	<div id="parentDiv">
   <p id="childP">Hello, Let's Check it!</p>
-  <button class="childButton">
+  <button class="childButton" onClick="handleClick()">
 	  <span>Click me</span>
   </button>
   <a id="childLink" href="https://www.google.com/">Visit Google.Com</a>
@@ -340,6 +340,14 @@ VWO.push(['onVariationApplied', function (data) {
 
         //setTimeout(historyPushUrl, 1000);
     </script>
+	<script>
+		function handleClick() {
+  const info = window.VWO.getCrossDomainInfo();
+  const url = `https://test-app-2-liard.vercel.app/?${info.q}=${info.d}`;
+
+  window.location.href = url;
+}
+	</script>
 
   </body>
 
